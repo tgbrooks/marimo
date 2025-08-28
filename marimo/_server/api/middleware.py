@@ -14,6 +14,7 @@ from typing import (
     Union,
 )
 from urllib.parse import urljoin, urlparse
+import time
 
 import starlette.status as status
 from starlette.authentication import (
@@ -32,6 +33,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response, StreamingResponse
 from starlette.websockets import WebSocket, WebSocketState
 from websockets import ClientConnection, ConnectionClosed, connect
+from starlette.applications import Starlette
 
 from marimo import _loggers
 from marimo._config.settings import GLOBAL_SETTINGS
@@ -41,6 +43,7 @@ from marimo._server.api.deps import AppState, AppStateBase
 from marimo._server.codes import WebSocketCodes
 from marimo._server.model import SessionMode
 from marimo._tracer import server_tracer
+from marimo._server.uvicorn_utils import close_uvicorn
 
 if TYPE_CHECKING:
     from starlette.requests import HTTPConnection
@@ -524,12 +527,58 @@ class ProxyMiddleware:
         except Exception as e:
             LOGGER.error(f"WebSocket proxy error for {ws_url}: {e}")
             # Check if this is a connection error suggesting the LSP server isn't running
-            if "Connection refused" in str(e) or "Connect call failed" in str(
-                e
-            ):
+            if "Connection refused" in str(e) or "Connect call failed" in str(e):
                 LOGGER.error(
                     f"LSP server appears to be down at {ws_url}. Check if the LSP server started successfully."
                 )
             if websocket.client_state != WebSocketState.DISCONNECTED:
                 await websocket.close(code=WebSocketCodes.UNEXPECTED_ERROR)
             raise
+
+
+class TimeoutMiddleware(BaseHTTPMiddleware):
+    def __init__(
+        self,
+        app: ASGIApp,
+        dispatch: DispatchFunction | None = None,
+        app_state: Any = None,
+    ) -> None:
+        super().__init__(app, dispatch)
+
+        self.app_state = app_state
+        LOGGER.info("Creating a TimeoutMiddleware")
+
+        asyncio.create_task(self.monitor())
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+
+        request = Request(scope)
+
+        request.app.state.timeout_tracker = time.time()
+
+        LOGGER.info(f"Connection detected {request.app.state.timeout_tracker}")
+
+        # if not GLOBAL_SETTINGS.TIMEOUT:
+        #    return await call_next(request)
+
+        return await self.app(scope, receive, send)
+
+    async def monitor(self):
+        while True:
+            await asyncio.sleep(10)
+            LOGGER.info("Checking time!")
+
+            time_delta = time.time() - self.app_state.timeout_tracker
+
+            if time_delta > 10:
+                LOGGER.error("SHUTTING DOWN NOW")
+                self.shutdown()
+
+    def shutdown(self):
+        manager = self.app_state.session_manager
+
+        manager.shutdown()
+        if self.app_state.server:
+            close_uvicorn(self.app_state.server)

@@ -1,4 +1,5 @@
 # Copyright 2024 Marimo. All rights reserved.
+# Middleware(TimeoutMiddleware),
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -21,6 +22,7 @@ from marimo._server.api.middleware import (
     OpenTelemetryMiddleware,
     ProxyMiddleware,
     SkewProtectionMiddleware,
+    TimeoutMiddleware,
 )
 from marimo._server.api.router import build_routes
 from marimo._server.api.status import (
@@ -105,7 +107,7 @@ def create_starlette_app(
 
     final_middlewares.extend(MIDDLEWARE_REGISTRY.get_all())
 
-    return Starlette(
+    app = Starlette(
         routes=build_routes(base_url=base_url),
         middleware=final_middlewares,
         lifespan=lifespan,
@@ -116,6 +118,8 @@ def create_starlette_app(
             ModuleNotFoundError: handle_error,
         },
     )
+    app.add_middleware(TimeoutMiddleware, app_state=app.state)
+    return app
 
 
 def _create_mpl_proxy_middleware(base_url: str) -> Middleware:
