@@ -33,7 +33,6 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response, StreamingResponse
 from starlette.websockets import WebSocket, WebSocketState
 from websockets import ClientConnection, ConnectionClosed, connect
-from starlette.applications import Starlette
 
 from marimo import _loggers
 from marimo._config.settings import GLOBAL_SETTINGS
@@ -542,10 +541,12 @@ class TimeoutMiddleware(BaseHTTPMiddleware):
         app: ASGIApp,
         dispatch: DispatchFunction | None = None,
         app_state: Any = None,
+        timeout_duration_minutes: float = 10,
     ) -> None:
         super().__init__(app, dispatch)
 
         self.app_state = app_state
+        self.timeout_duration_minutes = timeout_duration_minutes
         LOGGER.info("Creating a TimeoutMiddleware")
 
         asyncio.create_task(self.monitor())
@@ -560,9 +561,6 @@ class TimeoutMiddleware(BaseHTTPMiddleware):
 
         LOGGER.info(f"Connection detected {request.app.state.timeout_tracker}")
 
-        # if not GLOBAL_SETTINGS.TIMEOUT:
-        #    return await call_next(request)
-
         return await self.app(scope, receive, send)
 
     async def monitor(self):
@@ -572,7 +570,7 @@ class TimeoutMiddleware(BaseHTTPMiddleware):
 
             time_delta = time.time() - self.app_state.timeout_tracker
 
-            if time_delta > 10:
+            if time_delta > self.timeout_duration_minutes * 60:
                 LOGGER.error("SHUTTING DOWN NOW")
                 self.shutdown()
 

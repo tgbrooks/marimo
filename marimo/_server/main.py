@@ -57,6 +57,7 @@ def create_starlette_app(
     allow_origins: Optional[tuple[str, ...]] = None,
     lsp_servers: Optional[list[LspServer]] = None,
     skew_protection: bool = True,
+    timeout: Optional[float] = None,
 ) -> Starlette:
     final_middlewares: list[Middleware] = []
 
@@ -118,7 +119,8 @@ def create_starlette_app(
             ModuleNotFoundError: handle_error,
         },
     )
-    app.add_middleware(TimeoutMiddleware, app_state=app.state)
+    if timeout is not None:
+        app.add_middleware(TimeoutMiddleware, app_state=app.state, timeout_duration_minutes=timeout)
     return app
 
 
