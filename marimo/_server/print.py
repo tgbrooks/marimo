@@ -156,7 +156,6 @@ def print_experimental_features(config: MarimoConfig) -> None:
         f"{_utf8('🧪')} {green('Experimental features (use with caution)')}: {', '.join(keys)}"
     )
 
+
 def print_timeout() -> None:
-    print_tabbed(
-        "Timeout due to inactivity"
-    )
+    print_tabbed("Timeout due to inactivity")

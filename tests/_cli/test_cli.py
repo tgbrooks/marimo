@@ -1216,6 +1216,7 @@ def test_cli_edit_with_convert(
     p.terminate()
     p.wait(timeout=5)
 
+
 def test_cli_edit_with_timeout() -> None:
     p = subprocess.Popen(
         [
@@ -1224,7 +1225,7 @@ def test_cli_edit_with_timeout() -> None:
             "--no-token",
             "--headless",
             "--timeout",
-            "0.01" # very short timeout
+            "0.01",  # very short timeout
         ],
         stderr=subprocess.PIPE,
         stdout=subprocess.PIPE,

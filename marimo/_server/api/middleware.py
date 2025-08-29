@@ -41,9 +41,9 @@ from marimo._server.api.auth import validate_auth
 from marimo._server.api.deps import AppState, AppStateBase
 from marimo._server.codes import WebSocketCodes
 from marimo._server.model import SessionMode
+from marimo._server.print import print_timeout
 from marimo._server.uvicorn_utils import close_uvicorn
 from marimo._tracer import server_tracer
-from marimo._server.print import print_timeout
 
 if TYPE_CHECKING:
     from starlette.requests import HTTPConnection
