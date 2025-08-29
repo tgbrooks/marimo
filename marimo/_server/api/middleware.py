@@ -43,6 +43,7 @@ from marimo._server.codes import WebSocketCodes
 from marimo._server.model import SessionMode
 from marimo._server.uvicorn_utils import close_uvicorn
 from marimo._tracer import server_tracer
+from marimo._server.print import print_timeout
 
 if TYPE_CHECKING:
     from starlette.requests import HTTPConnection
@@ -526,7 +527,9 @@ class ProxyMiddleware:
         except Exception as e:
             LOGGER.error(f"WebSocket proxy error for {ws_url}: {e}")
             # Check if this is a connection error suggesting the LSP server isn't running
-            if "Connection refused" in str(e) or "Connect call failed" in str(e):
+            if "Connection refused" in str(e) or "Connect call failed" in str(
+                e
+            ):
                 LOGGER.error(
                     f"LSP server appears to be down at {ws_url}. Check if the LSP server started successfully."
                 )
@@ -574,7 +577,7 @@ class TimeoutMiddleware(BaseHTTPMiddleware):
             time_delta = time.time() - self.app_state.timeout_tracker
 
             if time_delta > self.timeout_duration_minutes * 60:
-                LOGGER.error("SHUTTING DOWN NOW")
+                print_timeout()
                 self.shutdown()
 
     def shutdown(self) -> None:
