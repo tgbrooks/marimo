@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from collections.abc import AsyncIterable
 from dataclasses import dataclass
 from http.client import HTTPResponse, HTTPSConnection
@@ -14,7 +15,6 @@ from typing import (
     Union,
 )
 from urllib.parse import urljoin, urlparse
-import time
 
 import starlette.status as status
 from starlette.authentication import (
@@ -41,8 +41,8 @@ from marimo._server.api.auth import validate_auth
 from marimo._server.api.deps import AppState, AppStateBase
 from marimo._server.codes import WebSocketCodes
 from marimo._server.model import SessionMode
-from marimo._tracer import server_tracer
 from marimo._server.uvicorn_utils import close_uvicorn
+from marimo._tracer import server_tracer
 
 if TYPE_CHECKING:
     from starlette.requests import HTTPConnection
@@ -546,12 +546,15 @@ class TimeoutMiddleware(BaseHTTPMiddleware):
         super().__init__(app, dispatch)
 
         self.app_state = app_state
+        self.app_state.timeout_tracker = time.time()
         self.timeout_duration_minutes = timeout_duration_minutes
         LOGGER.info("Creating a TimeoutMiddleware")
 
         asyncio.create_task(self.monitor())
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self, scope: Scope, receive: Receive, send: Send
+    ) -> None:
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
 
@@ -563,7 +566,7 @@ class TimeoutMiddleware(BaseHTTPMiddleware):
 
         return await self.app(scope, receive, send)
 
-    async def monitor(self):
+    async def monitor(self) -> None:
         while True:
             await asyncio.sleep(10)
             LOGGER.info("Checking time!")
@@ -574,7 +577,7 @@ class TimeoutMiddleware(BaseHTTPMiddleware):
                 LOGGER.error("SHUTTING DOWN NOW")
                 self.shutdown()
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         manager = self.app_state.session_manager
 
         manager.shutdown()

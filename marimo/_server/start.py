@@ -4,7 +4,6 @@ from __future__ import annotations
 import os
 import re
 from typing import Optional
-import time
 
 import uvicorn
 
@@ -91,7 +90,7 @@ def start(
     redirect_console_to_browser: bool,
     skew_protection: bool,
     remote_url: Optional[str] = None,
-    timeout: Optional[int] = None,
+    timeout: Optional[float] = None,
 ) -> None:
     """
     Start the server.
@@ -196,7 +195,6 @@ def start(
     app.state.base_url = base_url
     app.state.config_manager = config_reader
     app.state.remote_url = remote_url
-    app.state.timeout_tracker = time.time()
 
     # Resource initialization
     # Increase the limit on open file descriptors to prevent resource

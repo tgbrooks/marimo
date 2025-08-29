@@ -120,7 +120,11 @@ def create_starlette_app(
         },
     )
     if timeout is not None:
-        app.add_middleware(TimeoutMiddleware, app_state=app.state, timeout_duration_minutes=timeout)
+        app.add_middleware(
+            TimeoutMiddleware,
+            app_state=app.state,
+            timeout_duration_minutes=timeout,
+        )
     return app
 
 

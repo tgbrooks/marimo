@@ -457,7 +457,7 @@ https://github.com/marimo-team/marimo/issues/5219.""",
     default=None,
     show_default=False,
     type=float,
-    help="Enable a global timeout to shut down the server after specified number of minutes of no connection"
+    help="Enable a global timeout to shut down the server after specified number of minutes of no connection",
 )
 def edit(
     port: Optional[int],

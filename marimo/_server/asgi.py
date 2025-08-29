@@ -14,7 +14,6 @@ from typing import (
     Protocol,
     Union,
 )
-import time
 
 if TYPE_CHECKING:
     import sys
